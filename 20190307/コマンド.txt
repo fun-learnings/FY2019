@@ -1,0 +1,292 @@
+①PostgreSQLのインストール
+
+# yum -y install postgresql-server
+依存性関連をインストールしました:
+  postgresql.x86_64 0:9.2.24-1.el7_5   postgresql-libs.x86_64 0:9.2.24-1.el7_5  
+「完了しました!」が表示されればOK
+
+②PostgreSQLの設定
+# postgresql-setup initdb
+Initializing database ... OK
+
+# cd /var/lib/pgsql/data
+# pwd
+# cp postgresql.conf postgresql.conf.org
+# echo "listen_addresses = '*'" >> /var/lib/pgsql/data/post gresql.conf
+# diff -u postgresql.conf.org postgresql.conf
+--- postgresql.conf.org	2019-02-03 15:08:13.962138723 +0900
++++ postgresql.conf	2019-02-03 15:08:27.719791025 +0900
+@@ -576,3 +576,4 @@
+ #------------------------------------------------------------------------------
+ 
+ # Add settings for extensions here
++listen_addresses = '*'
+
+# cd /var/lib/pgsql/data
+# cp pg_hba.conf pg_hba.conf.org
+# echo "# PostgreSQL Client Authentication Configuration Fi le" >  ./pg_hba.conf
+# echo "# ================================================= ==" >> ./pg_hba.conf
+# echo "local all all              trust"                       >> ./pg_hba.conf
+# echo "host  all all 127.0.0.1/32 trust"                       >> ./pg_hba.conf
+# echo "host  all all ::1/128      trust"                       >> ./pg_hba.conf
+# cat pg_hba.conf
+
+$ PostgreSQL Client Authentication Configuration File
+# ===================================================
+local all all              trust
+host  all all 127.0.0.1/32 trust
+host  all all ::1/128      trust
+
+# service postgresql restart
+Redirecting to /bin/systemctl restart postgresql.service
+
+④新規ユーザ作成
+# su -postgres postgres
+
+$ createuser -d kei
+$ exit
+
+# useradd kei\
+# su - kei
+
+⑤DB作成
+$ createdb test
+$ psql -l
+$ psql -U kei test
+psql (9.2.24)
+
+⑥テーブル作成
+test=> create table 会員表
+test-> (会員ID CHAR(8) NOT NULL,
+test(> 氏名 TEXT NOT NULL,
+test(> メールアドレス TEXT ,
+test(> PRIMARY KEY (会員ID));
+NOTICE:  CREATE TABLE / PRIMARY KEYはテーブル"会員表"に暗黙的なインデックス"会員表_pkey"を作成します
+CREATE TABLE
+
+test=> create table 商品表
+test-> (コンサートID CHAR(8) NOT LNULL,
+test(> コンサート情報 TEXT NOT NULL,
+test(> 開催日時 TEXT ,
+test(> PRIMARY KEY (コンサートID));
+NOTICE:  CREATE TABLE / PRIMARY KEYはテーブル"商品表"に暗黙的なインデックス"商品表_pkey"を作成します
+CREATE TABLE
+
+test=> \d
+test=> create table 商品詳細表
+test-> (コンサートID　 CHAR(8) NOT NULL,
+test(> 座種 CHAR(1) NOT NULL,
+test(> 価格 INTEGER NOT NULL,
+test(> 販売席数 INTEGER ,
+test(> PRIMARY KEY (コンサートID,座種));
+NOTICE:  CREATE TABLE / PRIMARY KEYはテーブル"商品詳細表"に暗黙的なインデックス"商品詳細表_pkey"を作成します
+CREATE TABLE
+test=> \d 
+
+create table 決済表
+(販売ID CHAR(8) NOT NULL,
+決済日 TEXT,
+決済額 INTEGER NOT NULL,
+付与ポイント INTEGER,
+PRIMARY KEY (販売ID));
+NOTICE:  CREATE TABLE / PRIMARY KEYはテーブル"決済表"に暗黙的なインデックス"決済表_pkey"を作成します
+CREATE TABLE
+test=> 
+test=> \d
+
+create table 販売表
+(販売ID CHAR(8) NOT NULL,
+会員ID CHAR(8) NOT NULL,
+コンサートID CHAR(8) NOT NULL,
+座種 CHAR(8) NOT NULL,
+座数 INTEGER NOT NULL,
+座席 INTEGER ,
+販売日 TEXT ,
+販売額 INTEGER ,
+決済期限日 TEXT ,
+使用ポイント INTEGER ,
+PRIMARY KEY (販売ID));
+NOTICE:  CREATE TABLE / PRIMARY KEYはテーブル"販売表"に暗黙的なインデックス"販売表_pkey"を作成します
+CREATE TABLE
+
+test-> \d
+            リレーションの一覧
+ スキーマ |    名前    |    型    | 所有者 
+----------+------------+----------+--------
+ public   | 会員表     | テーブル | kei
+ public   | 商品表     | テーブル | kei
+ public   | 商品詳細表 | テーブル | kei
+ public   | 決済表     | テーブル | kei
+ public   | 販売表     | テーブル | kei
+(5 行)
+
+⑦データ投入
+INSERT INTO 会員表 (会員ID, 氏名, 電子メールアドレス) VALUES ('K00001', '情報太郎', 'taro@example.com');
+
+INSERT INTO 商品表 (コンサートID, コンサート情報, 開催日時) VALUES ('C00001', 'クリスマスコンサート 2018 in 東京 出演:Xバンド…', '2018-12-24 18;00:00');
+
+INSERT INTO 商品詳細表 (コンサートID, 座種, 価格 ,販売席数) VALUES ('C00001', 'S', '6000' ,'500');
+
+INSERT INTO 決済表 (販売ID, 決済日, 決済額, 付与ポイント) VALUES ('H00001', '2018-09-29', 12000, 100);
+INSERT INTO 決済表 (販売ID, 決済日, 決済額, 付与ポイント) VALUES ('H00005', '2018-09-30', 18000, 200);
+INSERT INTO 決済表 (販売ID, 決済日, 決済額, 付与ポイント) VALUES ('H00003', '2018-10-01', 12000, 10);
+INSERT INTO 決済表 (販売ID, 決済日, 決済額, 付与ポイント) VALUES ('H00004', '2018-10-01', 6000, 0);
+
+
+INSERT INTO 販売表 (販売ID, 会員ID,コンサートID, 座種, 座数, 販売日, 販売額, 決済期限日, 使用ポイント) VALUES ('H000001', 'K00001', 'C00001', 'S',2,  '2018-09-02', 12000, '2018-09-29', 0);
+INSERT INTO 販売表 (販売ID, 会員ID,コンサートID, 座種, 座数, 販売日, 販売額, 決済期限日, 使用ポイント) VALUES ('H000002', 'K00002', 'C00001', 'S',2,  '2018-09-02', 12000, '2018-09-29', 0);
+INSERT INTO 販売表 (販売ID, 会員ID,コンサートID, 座種, 座数, 販売日, 販売額, 決済期限日, 使用ポイント) VALUES ('H000003', 'K00003', 'C00001', 'S',2,  '2018-09-02', 12000, '2018-10-01', 1);
+INSERT INTO 販売表 (販売ID, 会員ID,コンサートID, 座種, 座数, 販売日, 販売額, 決済期限日, 使用ポイント) VALUES ('H000004', 'K00004', 'C00001', 'S',1,  '2018-09-02', 6000, '2018-09-29', 1);
+INSERT INTO 販売表 (販売ID, 会員ID,コンサートID, 座種, 座数, 販売日, 販売額, 決済期限日, 使用ポイント) VALUES ('H000005', 'K00005', 'C00001', 'S',3,  '2018-09-02', 18000, '2018-10-01', 0);
+INSERT INTO 販売表 (販売ID, 会員ID,コンサートID, 座種, 座数, 販売日, 販売額, 決済期限日, 使用ポイント) VALUES ('H000006', 'K00006', 'C00001', 'S',4,  '2018-09-02', 12000, '2018-09-29', 0);
+
+
+■基本情報処理技術者試験　問3
+
+設問2
+ア
+SELECT SUM(販売表.座数) 
+FROM 販売表 INNER JOIN 決済表 ON 販売表.販売ID = 決済表.販売ID 
+WHERE 販売表.コンサートID = 'C00001' 
+AND 販売表.座種 = 'S' 
+AND 決済表.決済額 = -1;
+
+イ
+SELECT SUM(販売表.座数) 
+FROM 販売表 INNER JOIN 決済表 ON 販売表.販売ID = 決済表.販売ID 
+WHERE 販売表.コンサートID = 'C00001' 
+AND 販売表.座種 = 'S' 
+AND 決済表.決済額 >= 0;
+
+ウ
+SELECT SUM(販売表.座数) 
+FROM 販売表 LEFT OUTER JOIN 決済表 ON 販売表.販売ID = 決済表.販売ID 
+WHERE 販売表.コンサートID = 'C00001' 
+AND 販売表.座種 = 'S' 
+AND (決済表.決済額 IS NULL OR 決済表.決済額 = -1);
+
+エ
+SELECT SUM(販売表.座数) 
+FROM 販売表 LEFT OUTER JOIN 決済表 ON 販売表.販売ID = 決済表.販売ID 
+WHERE 販売表.コンサートID = 'C00001' 
+AND 販売表.座種 = 'S' 
+AND (決済表.決済額 IS NULL OR 決済表.決済額 >= 0);
+
+オ
+SELECT SUM(販売表.座数) 
+FROM 販売表 RIGHT OUTER JOIN 決済表 ON 販売表.販売ID = 決済表.販売ID 
+WHERE 販売表.コンサートID = 'C00001' 
+AND 販売表.座種 = 'S' 
+AND (決済表.決済額 IS NULL OR 決済表.決済額 = -1);
+
+カ
+SELECT SUM(販売表.座数) 
+FROM 販売表 RIGHT OUTER JOIN 決済表 ON 販売表.販売ID = 決済表.販売ID 
+WHERE 販売表.コンサートID = 'C00001' 
+AND 販売表.座種 = 'S' 
+AND (決済表.決済額 IS NULL OR 決済表.決済額 >= 0);
+
+設問3
+SELECT 会員表.氏名,会員表.電子メールアドレス,販売表.販売ID
+FROM 会員表,販売表
+WHERE DATEDIFF (販売表.決済期限日, NOW()) = 3
+AND 販売表.会員ID = 会員表.会員ID
+AND 販売表.販売ID NOT IN (SELECT 販売ID FROM 決済表);
+
+select (決済期限日, date '2018-10-01' - date '2018-09-29') from 販売表;
+
+ア
+SELECT 会員表.氏名,会員表.電子メールアドレス,販売表.販売ID
+FROM 会員表,販売表
+WHERE 販売表.会員ID = 会員表.会員ID
+AND 販売表.販売ID NOT IN (SELECT 販売ID FROM 決済表);
+
+イ
+SELECT 会員表.氏名,会員表.電子メールアドレス,販売表.販売ID
+FROM 会員表,販売表
+WHERE 販売表.会員ID = 会員表.会員ID
+AND 販売表.販売ID IN (SELECT 販売ID FROM 決済表 WHERE 決済額 >= 0);
+
+ウ
+SELECT 会員表.氏名,会員表.電子メールアドレス,販売表.販売ID
+FROM 会員表,販売表,決済表
+WHERE 販売表.会員ID = 会員表.会員ID
+AND 販売表.販売ID = 決済表.販売ID;
+
+エ
+SELECT 会員表.氏名,会員表.電子メールアドレス,販売表.販売ID
+FROM 会員表,販売表,決済表
+WHERE 販売表.会員ID = 会員表.会員ID
+AND 販売表.販売ID = 決済表.販売ID
+AND 決済表.決済額 <> -1;
+
+設問4
+UPDATE 決済表 SET 付与ポイント = (
+ CASE WHEN 決済額 >= 20000 THEN FLOOR(決済額 * 0.03)
+ WHEN 決済額 >= 10000 THEN FLOOR(決済額 * 0.02)
+ ELSE FLOOR(決済額 * 0.01) END )
+  WHERE DATEDIFF(NOW(), 決済日) = 1;
+
+ア
+INSERT INTO 決済表(付与ポイント)
+ SELECT IF 決済額 >= 20000 THEN FLOOR(決済額 * 0.03)
+   ELSEIF 決済額 >= 10000 THEN FLOOR(決済額 * 0.02)
+   ELSE FLOOR(決済額 * 0.01) END;
+
+イ
+UPDATE 決済表 SET 付与ポイント = (
+ CASE 決済額 >= 20000 THEN FLOOR(決済額 * 0.03)
+ WHEN 決済額 >= 10000 THEN FLOOR(決済額 * 0.02)
+ ELSE FLOOR(決済額 * 0.01) END );
+
+ウ
+UPDATE 決済表 SET 付与ポイント = (
+ CASE WHEN 決済額 >= 20000 THEN FLOOR(決済額 * 0.03)
+ WHEN 決済額 >= 10000 THEN FLOOR(決済額 * 0.02)
+ ELSE FLOOR(決済額 * 0.01) END );
+
+エ
+UPDATE 決済表 SET 付与ポイント = (
+ IF 決済額 >= 20000 THEN FLOOR(決済額 * 0.03)
+ ELSEIF 決済額 >= 10000 THEN FLOOR(決済額 * 0.02)
+ ELSE FLOOR(決済額 * 0.01) END );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
